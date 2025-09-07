@@ -21,9 +21,7 @@
 
 
 import asyncio
-
 import os
-
 import re
 import json
 from typing import Union
@@ -35,8 +33,6 @@ from youtubesearchpython.__future__ import VideosSearch
 
 from ShrutiMusic.utils.database import is_on_off
 from ShrutiMusic.utils.formatters import time_to_seconds
-
-
 
 import os
 import glob
@@ -54,6 +50,30 @@ def cookie_txt_file():
         file.write(f'Choosen File : {cookie_txt_file}\n')
     return f"""cookies/{str(cookie_txt_file).split("/")[-1]}"""
 
+
+def check_existing_file(video_id, file_types=None, media_type=None):
+    """Check if file already exists for given video_id and media type"""
+    if file_types is None:
+        file_types = ["mp3", "m4a", "webm", "mp4", "mkv"]
+    
+    download_folder = "downloads"
+    if not os.path.exists(download_folder):
+        os.makedirs(download_folder, exist_ok=True)
+        return None
+    
+    # If media_type is specified, filter file types accordingly
+    if media_type == "audio":
+        file_types = ["mp3", "m4a", "webm"]
+    elif media_type == "video":
+        file_types = ["mp4", "webm", "mkv"]
+    
+    for ext in file_types:
+        file_path = os.path.join(download_folder, f"{video_id}.{ext}")
+        if os.path.exists(file_path):
+            print(f"File already exists: {file_path}")
+            return file_path
+    
+    return None
 
 
 async def check_file_size(link):
@@ -198,6 +218,13 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
+        
+        video_id = link.split('v=')[-1].split('&')[0]
+        
+        existing_file = check_existing_file(video_id, ["mp4", "webm", "mkv"], "video")
+        if existing_file:
+            return 1, existing_file
+            
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
             "--cookies",cookie_txt_file(),
@@ -319,44 +346,93 @@ class YouTubeAPI:
     ) -> str:
         if videoid:
             link = self.base + link
+        
+        video_id = link.split('v=')[-1].split('&')[0]
+        
         loop = asyncio.get_running_loop()
+        
         def audio_dl():
+            existing_file = check_existing_file(video_id, ["mp3", "m4a", "webm"], "audio")
+            if existing_file:
+                return existing_file
+                
             ydl_optssx = {
-                "format": "bestaudio/best",
+                "format": "bestaudio[acodec!=opus]/bestaudio",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
                 "cookiefile" : cookie_txt_file(),
                 "no_warnings": True,
+                "concurrent_fragment_downloads": 8,
+                "retries": 3,
+                "fragment_retries": 3,
+                "buffersize": 16384,
+                "prefer_ffmpeg": True,
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
-            info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if os.path.exists(xyz):
-                return xyz
-            x.download([link])
-            return xyz
+            try:
+                info = x.extract_info(link, download=False)
+                file_path = os.path.join("downloads", f"{info['id']}.{info['ext']}")
+                if os.path.exists(file_path):
+                    return file_path
+                x.download([link])
+                return file_path
+            except Exception as e:
+                print(f"Audio download error: {e}")
+                return None
 
         def video_dl():
+            existing_file = check_existing_file(video_id, ["mp4", "webm", "mkv"], "video")
+            if existing_file:
+                return existing_file
+                
             ydl_optssx = {
-                "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio[ext=m4a])",
+                "format": "best[height<=720][ext=mp4]/best[height<=480][ext=mp4]/best[ext=mp4]/18/best",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
                 "cookiefile" : cookie_txt_file(),
                 "no_warnings": True,
+                "concurrent_fragment_downloads": 8,
+                "retries": 3,
+                "fragment_retries": 3,
+                "buffersize": 16384,
+                "ignoreerrors": False,
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
-            info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if os.path.exists(xyz):
-                return xyz
-            x.download([link])
-            return xyz
+            try:
+                info = x.extract_info(link, download=False)
+                if not info:
+                    print("No video info available")
+                    return None
+                file_path = os.path.join("downloads", f"{info['id']}.{info['ext']}")
+                if os.path.exists(file_path):
+                    return file_path
+                x.download([link])
+                return file_path
+            except Exception as e:
+                print(f"Video download error: {e}")
+                try:
+                    ydl_optssx["format"] = "worst[ext=mp4]/worst"
+                    x = yt_dlp.YoutubeDL(ydl_optssx)
+                    info = x.extract_info(link, download=False)
+                    if info:
+                        file_path = os.path.join("downloads", f"{info['id']}.{info['ext']}")
+                        if not os.path.exists(file_path):
+                            x.download([link])
+                        return file_path
+                except Exception as e2:
+                    print(f"Fallback video download failed: {e2}")
+                    return None
 
         def song_video_dl():
+            custom_file_path = f"downloads/{title}.mp4"
+            if os.path.exists(custom_file_path):
+                print(f"Song video already exists: {custom_file_path}")
+                return custom_file_path
+                
             formats = f"{format_id}+140"
             fpath = f"downloads/{title}"
             ydl_optssx = {
@@ -369,11 +445,19 @@ class YouTubeAPI:
                 "cookiefile" : cookie_txt_file(),
                 "prefer_ffmpeg": True,
                 "merge_output_format": "mp4",
+                "concurrent_fragment_downloads": 8,
+                "retries": 2,
+                "fragment_retries": 2,
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
             x.download([link])
 
         def song_audio_dl():
+            custom_file_path = f"downloads/{title}.mp3"
+            if os.path.exists(custom_file_path):
+                print(f"Song audio already exists: {custom_file_path}")
+                return custom_file_path
+                
             fpath = f"downloads/{title}.%(ext)s"
             ydl_optssx = {
                 "format": format_id,
@@ -384,11 +468,14 @@ class YouTubeAPI:
                 "no_warnings": True,
                 "cookiefile" : cookie_txt_file(),
                 "prefer_ffmpeg": True,
+                "concurrent_fragment_downloads": 8,
+                "retries": 2,
+                "fragment_retries": 2,
                 "postprocessors": [
                     {
                         "key": "FFmpegExtractAudio",
                         "preferredcodec": "mp3",
-                        "preferredquality": "192",
+                        "preferredquality": "128",
                     }
                 ],
             }
@@ -408,12 +495,16 @@ class YouTubeAPI:
                 direct = True
                 downloaded_file = await loop.run_in_executor(None, video_dl)
             else:
+                existing_file = check_existing_file(video_id, ["mp4", "webm", "mkv"], "video")
+                if existing_file:
+                    return existing_file, False
+                    
                 proc = await asyncio.create_subprocess_exec(
                     "yt-dlp",
                     "--cookies",cookie_txt_file(),
                     "-g",
                     "-f",
-                    "18/best",
+                    "best[height<=720]/18/best",
                     f"{link}",
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
@@ -448,4 +539,4 @@ class YouTubeAPI:
 # ===========================================
 
 
-# ❤️ Love From ShrutiBots 
+# ❤️ Love From ShrutiBots
