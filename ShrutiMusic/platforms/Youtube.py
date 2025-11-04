@@ -56,7 +56,7 @@ except RuntimeError:
 
 async def get_telegram_file(telegram_link: str, video_id: str, file_type: str) -> str:
     """
-    Telegram link se file download
+    TG link to source
     """
     logger = LOGGER("ShrutiMusic/platforms/Youtube.py")
     try:
