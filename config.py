@@ -75,7 +75,7 @@ PRIVACY_LINK = os.getenv("PRIVACY_LINK", "https://graph.org/Privacy-Policy-05-01
 # ⏱️ Duration & Playlist Settings
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-DURATION_LIMIT_MIN = int(os.getenv("DURATION_LIMIT", 300))
+DURATION_LIMIT_MIN = int(os.getenv("DURATION_LIMIT", 100))
 PLAYLIST_FETCH_LIMIT = int(os.getenv("PLAYLIST_FETCH_LIMIT", 25))
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
