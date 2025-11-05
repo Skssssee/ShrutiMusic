@@ -29,7 +29,7 @@ import os
 @app.on_message(filters.command("vid"))
 async def video_downloader(_, message: Message):
     if len(message.command) < 2:
-        return await message.reply_text("❌ Please provide a video URL.\n\nExample:\n/vid Any_video_url")
+        return await message.reply_text("❌ Please provide a video URL.\n\nExample:\n/insta Any_video_url")
 
     video_url = message.text.split(None, 1)[1]
 
