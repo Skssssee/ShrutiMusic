@@ -1,3 +1,4 @@
+
 import asyncio
 import os
 import re
@@ -6,10 +7,12 @@ import yt_dlp
 from py_yt import VideosSearch
 from ShrutiMusic.utils.formatters import time_to_seconds
 import aiohttp
-# from ShrutiMusic import LOGGER # Commented out to avoid import error if not present
+from pyrogram.types import Message
+from pyrogram.enums import MessageEntityType
+# from ShrutiMusic import LOGGER
 
 # --- CONFIGURATION ---
-MY_API_URL = "https://civic-robby-uhhy5-a19ca05d.koyeb.app" 
+MY_API_URL = "https://civic-robby-uhhy5-a19ca05d.koyeb.app"
 # ---------------------
 
 async def download_song(link: str) -> str:
@@ -25,21 +28,16 @@ async def download_song(link: str) -> str:
     if os.path.exists(file_path):
         return file_path
 
-    # Use our specific API URL
     api_url = MY_API_URL
-    
+   
     try:
         async with aiohttp.ClientSession() as session:
-            # Our API uses /audio for direct streaming/downloading of audio
-            # params: url={link}
             stream_url = f"{api_url}/audio?url=https://www.youtube.com/watch?v={video_id}"
-            
             async with session.get(stream_url) as response:
                 if response.status == 200:
                     with open(file_path, "wb") as f:
                         async for chunk in response.content.iter_chunked(16384):
                             f.write(chunk)
-                    
                     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                         return file_path
     except Exception as e:
@@ -49,36 +47,26 @@ async def download_song(link: str) -> str:
                 os.remove(file_path)
             except:
                 pass
-    
     return None
 
 async def download_video(link: str) -> str:
     video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
-
     if not video_id or len(video_id) < 3:
         return None
-
     DOWNLOAD_DIR = "downloads"
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.mp4")
-
     if os.path.exists(file_path):
         return file_path
-
     api_url = MY_API_URL
-    
     try:
         async with aiohttp.ClientSession() as session:
-            # Our API uses /download for video
-            # params: url={link}
             stream_url = f"{api_url}/download?url=https://www.youtube.com/watch?v={video_id}"
-            
             async with session.get(stream_url) as response:
                 if response.status == 200:
                     with open(file_path, "wb") as f:
                         async for chunk in response.content.iter_chunked(16384):
                             f.write(chunk)
-                    
                     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                         return file_path
     except Exception as e:
@@ -88,13 +76,7 @@ async def download_video(link: str) -> str:
                 os.remove(file_path)
             except:
                 pass
-    
     return None
-
-# ... (Original YouTubeAPI class logic can remain mostly same, 
-#      but the 'download' method just calls our new functions)
-
-# ... (Previous imports and functions: download_song, download_video) ...
 
 class YouTubeAPI:
     def __init__(self):
@@ -246,7 +228,7 @@ class YouTubeAPI:
                 downloaded_file = await download_video(link)
             else:
                 downloaded_file = await download_song(link)
-            
+           
             if downloaded_file:
                 return downloaded_file, True
             else:
@@ -254,11 +236,3 @@ class YouTubeAPI:
         except Exception:
             return None, False
 
-# Test run if executed manually
-if __name__ == "__main__":
-    async def main():
-        print("Testing download...")
-        path = await download_song("dQw4w9WgXcQ")
-        print(f"Downloaded to: {path}")
-
-    # asyncio.run(main())
