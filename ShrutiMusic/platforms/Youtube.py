@@ -12,7 +12,7 @@ from pyrogram.enums import MessageEntityType
 # from ShrutiMusic import LOGGER
 
 # --- CONFIGURATION ---
-MY_API_URL = "https://civic-robby-uhhy5-a19ca05d.koyeb.app"
+MY_API_URL = "https://civic-robby-uhhy5-a19ca05d.koyeb.app" 
 # ---------------------
 
 async def download_song(link: str) -> str:
@@ -29,53 +29,78 @@ async def download_song(link: str) -> str:
         return file_path
 
     api_url = MY_API_URL
-   
+    
     try:
         async with aiohttp.ClientSession() as session:
             stream_url = f"{api_url}/audio?url=https://www.youtube.com/watch?v={video_id}"
-            async with session.get(stream_url) as response:
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+            print(f"[DEBUG-ANTIGRAVITY] Downloading: {stream_url}")
+            
+            async with session.get(stream_url, headers=headers) as response:
+                print(f"[DEBUG-ANTIGRAVITY] Status Code: {response.status}")
+                
                 if response.status == 200:
                     with open(file_path, "wb") as f:
                         async for chunk in response.content.iter_chunked(16384):
                             f.write(chunk)
+                    
                     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+                        print(f"[DEBUG-ANTIGRAVITY] Success! Saved to {file_path}")
                         return file_path
+                    else:
+                        print("[DEBUG-ANTIGRAVITY] Downloaded file is empty.")
+                else:
+                    text = await response.text()
+                    print(f"[DEBUG-ANTIGRAVITY] Failed. Body: {text}")
+
     except Exception as e:
-        print(f"Error downloading: {e}")
+        print(f"[DEBUG-ANTIGRAVITY] Exception: {e}")
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
             except:
                 pass
+    
     return None
 
 async def download_video(link: str) -> str:
     video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
+
     if not video_id or len(video_id) < 3:
         return None
+
     DOWNLOAD_DIR = "downloads"
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.mp4")
+
     if os.path.exists(file_path):
         return file_path
+
     api_url = MY_API_URL
+    
     try:
         async with aiohttp.ClientSession() as session:
             stream_url = f"{api_url}/download?url=https://www.youtube.com/watch?v={video_id}"
-            async with session.get(stream_url) as response:
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
+            print(f"[DEBUG-ANTIGRAVITY] Downloading Video: {stream_url}")
+            
+            async with session.get(stream_url, headers=headers) as response:
+                print(f"[DEBUG-ANTIGRAVITY] Status: {response.status}")
                 if response.status == 200:
                     with open(file_path, "wb") as f:
                         async for chunk in response.content.iter_chunked(16384):
                             f.write(chunk)
+                    
                     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                         return file_path
     except Exception as e:
-        print(f"Error downloading video: {e}")
+        print(f"[DEBUG-ANTIGRAVITY] Video Error: {e}")
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
             except:
                 pass
+    
     return None
 
 class YouTubeAPI:
@@ -228,11 +253,12 @@ class YouTubeAPI:
                 downloaded_file = await download_video(link)
             else:
                 downloaded_file = await download_song(link)
-           
+            
             if downloaded_file:
                 return downloaded_file, True
             else:
                 return None, False
         except Exception:
             return None, False
+
 
