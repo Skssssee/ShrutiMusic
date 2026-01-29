@@ -1,6 +1,4 @@
 import time
-import random
-from typing import Final
 
 from pyrogram import filters
 from pyrogram.enums import ChatType
@@ -25,31 +23,10 @@ from ShrutiMusic.utils.inline import help_pannel_page1, private_panel, start_pan
 from config import BANNED_USERS
 from strings import get_string
 
-NAND_YADUWANSHI_EFFECTS: Final[list[str]] = [
-    "5104841245755180586",
-    "5107584321108051014",
-    "5159385139981059251",
-    "5046509860389126442",
-]
-
-RANDOM_STICKERS = [
-    "CAACAgUAAxkBAAEEnzFor872a_gYPHu-FxIwv-nxmZ5U8QACyBUAAt5hEFVBanMxRZCc7h4E",
-    "CAACAgUAAxkBAAEEnzJor88q_xRO1ljlwh_I6fRF7lDR-AACnBsAAlckCFWNCpez-HzWHB4E",
-    "CAACAgUAAxkBAAEEnzNor88uPuVTSyRImyVXsu1pqrpRLgACKRMAAvOEEFUpvggmgDu6bx4E",
-    "CAACAgUAAxkBAAEEnzRor880z_spEYEnEfyFXN55tNwydQACIxUAAosKEVUB8iqZMVYroR4E"
-]
-
-def get_random_effect_id():
-    return int(random.choice(NAND_YADUWANSHI_EFFECTS))
-
 
 @app.on_message(filters.command(["start"]) & filters.private & ~BANNED_USERS)
 @LanguageStart
 async def start_pm(client, message: Message, _):
-    if getattr(config, 'START_STICKER_ENABLED', True):
-        random_sticker = random.choice(RANDOM_STICKERS)
-        await message.reply_sticker(sticker=random_sticker)
-    
     await add_served_user(message.from_user.id)
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
@@ -60,8 +37,7 @@ async def start_pm(client, message: Message, _):
                     photo=config.START_IMG_URL,
                     caption=_["help_1"].format(config.SUPPORT_GROUP),
                     reply_markup=keyboard,
-                    has_spoiler=True,
-                    message_effect_id=get_random_effect_id(),
+                    message_effect_id=5159385139981059251,
                 )
             except:
                 return await message.reply_photo(
@@ -109,8 +85,7 @@ async def start_pm(client, message: Message, _):
                     photo=thumbnail,
                     caption=searched_text,
                     reply_markup=key,
-                    has_spoiler=True,
-                    message_effect_id=get_random_effect_id(),
+                    message_effect_id=5159385139981059251,
                 )
             except:
                 await app.send_photo(
@@ -124,6 +99,27 @@ async def start_pm(client, message: Message, _):
                     chat_id=config.LOG_GROUP_ID,
                     text=f"{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴄʜᴇᴄᴋ <b>ᴛʀᴀᴄᴋ ɪɴғᴏʀᴍᴀᴛɪᴏɴ</b>.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}",
                 )
+        if name == "start":
+            out = private_panel(_)
+            UP, CPU, RAM, DISK = await bot_sys_stats()
+            try:
+                await message.reply_photo(
+                    photo=config.START_IMG_URL,
+                    caption=_["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
+                    reply_markup=InlineKeyboardMarkup(out),
+                    message_effect_id=5159385139981059251,
+                )
+            except:
+                await message.reply_photo(
+                    photo=config.START_IMG_URL,
+                    caption=_["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
+                    reply_markup=InlineKeyboardMarkup(out),
+                )
+            if await is_on_off(2):
+                return await app.send_message(
+                    chat_id=config.LOG_GROUP_ID,
+                    text=f"{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}",
+                )
     else:
         out = private_panel(_)
         UP, CPU, RAM, DISK = await bot_sys_stats()
@@ -132,8 +128,7 @@ async def start_pm(client, message: Message, _):
                 photo=config.START_IMG_URL,
                 caption=_["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
                 reply_markup=InlineKeyboardMarkup(out),
-                has_spoiler=True,
-                message_effect_id=get_random_effect_id(),
+                message_effect_id=5159385139981059251,
             )
         except:
             await message.reply_photo(
@@ -151,10 +146,6 @@ async def start_pm(client, message: Message, _):
 @app.on_message(filters.command(["start"]) & filters.group & ~BANNED_USERS)
 @LanguageStart
 async def start_gp(client, message: Message, _):
-    if getattr(config, 'START_STICKER_ENABLED', True):
-        random_sticker = random.choice(RANDOM_STICKERS)
-        await message.reply_sticker(sticker=random_sticker)
-    
     out = start_panel(_)
     uptime = int(time.time() - _boot_)
     try:
@@ -162,8 +153,7 @@ async def start_gp(client, message: Message, _):
             photo=config.START_IMG_URL,
             caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
             reply_markup=InlineKeyboardMarkup(out),
-            has_spoiler=True,
-            message_effect_id=get_random_effect_id(),
+            message_effect_id=5159385139981059251,
         )
     except:
         await message.reply_photo(
@@ -200,10 +190,6 @@ async def welcome(client, message: Message):
                     )
                     return await app.leave_chat(message.chat.id)
 
-                if getattr(config, 'START_STICKER_ENABLED', True):
-                    random_sticker = random.choice(RANDOM_STICKERS)
-                    await message.reply_sticker(sticker=random_sticker)
-
                 out = start_panel(_)
                 try:
                     await message.reply_photo(
@@ -215,8 +201,7 @@ async def welcome(client, message: Message):
                             app.mention,
                         ),
                         reply_markup=InlineKeyboardMarkup(out),
-                        has_spoiler=True,
-                        message_effect_id=get_random_effect_id(),
+                        message_effect_id=5159385139981059251,
                     )
                 except:
                     await message.reply_photo(
